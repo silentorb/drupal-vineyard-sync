@@ -1,0 +1,18 @@
+<?php
+
+function vineyard_sync_load_json_from_file($filename) {
+  $json = file_get_contents($filename);
+  if ($json === false)
+    throw new Exception('Could not find file: ' . $filename);
+
+  $data = json_decode($json);
+  if (!is_object($data)) {
+    throw new Exception("Invalid JSON in file $filename.");
+  }
+
+  return $data;
+}
+
+function vineyard_sync_node_insert($node) {
+
+}
