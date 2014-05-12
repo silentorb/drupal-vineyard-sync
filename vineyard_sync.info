@@ -3,3 +3,5 @@ description = Synchronizes Drupal with a Vineyard Node Server
 core = 7.x
 package = Silent Orb
 php = 5.3
+
+files[] = inc/Vineyard_Sync.inc
