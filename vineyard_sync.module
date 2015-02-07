@@ -1,24 +1,33 @@
 <?php
 
 
-function vineyard_sync_node_insert($node) {
-  $sync = Vineyard_Sync::get_instance();
+//function vineyard_sync_node_insert($node) {
+//  $sync = Vineyard_Sync::get_instance();
+//
+//  if (isset($sync->entities[$node->type]))
+//    $sync->send($node);
+//}
 
-  if (isset($sync->nodes[$node->type]))
-    $sync->send($node);
+function vineyard_sync_entity_insert($entity, $type)
+{
+  $sync = Vineyard_Sync::get_instance();
+  print("type=$type");
+  $sync->send($entity, $type);
 }
 
-function vineyard_sync_node_update($node) {
+function vineyard_sync_entity_update($node, $type)
+{
   $sync = Vineyard_Sync::get_instance();
 
-  if (isset($sync->nodes[$node->type]))
-    $sync->send($node);
+//  if (isset($sync->nodes[$node->type]))
+  $sync->send($node, $type);
 }
 
-function vineyard_sync_node_delete($node) {
+function vineyard_sync_entity_delete($node, $type)
+{
   print 'deleting';
   $sync = Vineyard_Sync::get_instance();
 
-  if (isset($sync->nodes[$node->type]))
-    $sync->send($node, true);
+//  if (isset($sync->entities[$node->type]))
+  $sync->send($node, $type, true);
 }
