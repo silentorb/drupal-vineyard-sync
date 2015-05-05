@@ -8,10 +8,27 @@
 //    $sync->send($node);
 //}
 
+function vineyard_sync_menu() {
+  $items['vineyard/sync'] = array(
+    'title' => 'Resync Vineyard Server',
+    'page callback' => 'vineyard_sync',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer content types'),
+    'type' => MENU_CALLBACK,
+  );
+}
+
+function vineyard_sync() {
+  $type_name = $_GET['type'];
+  $query = new EntityFieldQuery();
+  $query->entityCondition('bundle', $type_name);
+
+}
+
 function vineyard_sync_entity_insert($entity, $type)
 {
   $sync = Vineyard_Sync::get_instance();
-  print("type=$type");
+//  print("type=$type");
   $sync->send($entity, $type);
 }
 
@@ -25,7 +42,7 @@ function vineyard_sync_entity_update($node, $type)
 
 function vineyard_sync_entity_delete($node, $type)
 {
-  print 'deleting';
+//  print 'deleting';
   $sync = Vineyard_Sync::get_instance();
 
 //  if (isset($sync->entities[$node->type]))
