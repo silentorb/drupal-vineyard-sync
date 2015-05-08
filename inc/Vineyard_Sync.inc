@@ -143,7 +143,20 @@ class Vineyard_Sync
 
     foreach ($map->properties as $key => $property) {
       $target_key = isset($property->name) ? $property->name : $key;
-      $object->{$target_key} = $source->{$key};
+      $value = $source->{$key};
+      if (is_object($value) || is_array($value)) {
+        if (isset($property->unbox) && $property->unbox) {
+          for($i = 0; $i <$property->unbox; ++$i) {
+            $value = reset($value);
+          }
+          $value = (object)$value;
+        }
+        $value = $this->populate_package($value, $this->entities[$property->trellis]);
+        if (isset($property->grab) && $property->grab)
+          $value = $value->{$property->grab};
+      }
+
+      $object->{$target_key} = $value;
     }
 
     return $object;

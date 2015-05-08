@@ -8,7 +8,8 @@
 //    $sync->send($node);
 //}
 
-function vineyard_sync_menu() {
+function vineyard_sync_menu()
+{
   $items['vineyard/sync'] = array(
     'title' => 'Resync Vineyard Server',
     'page callback' => 'vineyard_sync',
@@ -16,13 +17,35 @@ function vineyard_sync_menu() {
     'access arguments' => array('administer content types'),
     'type' => MENU_CALLBACK,
   );
+
+  return $items;
 }
 
-function vineyard_sync() {
+function vineyard_sync()
+{
   $type_name = $_GET['type'];
   $query = new EntityFieldQuery();
-  $query->entityCondition('bundle', $type_name);
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', $type_name);
 
+  $result = $query->execute();
+//  print_r($result);
+
+  $nids = array();
+  foreach ($result['node'] as $entity) {
+    $nids[] = $entity->nid;
+  }
+  $entities = entity_load('node', $nids);
+
+  $sync = Vineyard_Sync::get_instance();
+
+  foreach ($entities as $entity) {
+    $sync->send($entity, $type_name);
+    print_r($entity);
+    break;
+  }
+
+  drupal_add_http_header('Content-Type', 'text/plain');
 }
 
 function vineyard_sync_entity_insert($entity, $type)
