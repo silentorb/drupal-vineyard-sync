@@ -23,13 +23,23 @@ function vineyard_sync_menu()
 
 function vineyard_sync()
 {
-  $type_name = $_GET['type'];
+  drupal_add_http_header('Content-Type', 'text/plain');
+
+  $types = explode(' ',$_GET['type']);
+  foreach($types as $type_name) {
+    vineyard_sync_type($type_name);
+  }
+}
+
+function vineyard_sync_type($type_name) {
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node')
     ->entityCondition('bundle', $type_name);
 
+  if (isset($_GET['limit']))
+    $query->range(0, $_GET['limit']);
+
   $result = $query->execute();
-//  print_r($result);
 
   $nids = array();
   foreach ($result['node'] as $entity) {
@@ -41,11 +51,8 @@ function vineyard_sync()
 
   foreach ($entities as $entity) {
     $sync->send($entity, $type_name);
-    print_r($entity);
-    break;
+//    print_r($entity);
   }
-
-  drupal_add_http_header('Content-Type', 'text/plain');
 }
 
 function vineyard_sync_entity_insert($entity, $type)

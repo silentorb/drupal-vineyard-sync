@@ -151,10 +151,15 @@ class Vineyard_Sync
           }
           $value = (object)$value;
         }
-        $value = $this->populate_package($value, $this->entities[$property->trellis]);
+        if (isset($this->entities[$property->trellis]))
+          $value = $this->populate_package($value, $this->entities[$property->trellis]);
+
         if (isset($property->grab) && $property->grab)
           $value = $value->{$property->grab};
       }
+
+      if ($property->type == 'base64')
+        $value = base64_encode($value);
 
       $object->{$target_key} = $value;
     }
