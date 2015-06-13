@@ -113,7 +113,7 @@ class Vineyard_Sync
       cli_debug("cURL Error: $error");
 
     $httpCode = curl_getinfo($handle, CURLINFO_HTTP_CODE);
-    cli_debug( "$httpCode - $content\n");
+    cli_debug("$httpCode - $content\n");
     curl_close($handle);
 
     return $httpCode;
@@ -133,29 +133,48 @@ class Vineyard_Sync
     return $object;
   }
 
-  private function populate_package($source, $map)
+  private function populate_package($source, $map, $object = null)
   {
-    if ($map->parent) {
-      $object = $this->populate_package($source, $this->entities[$map->parent]);
-    } else {
-      $object = new stdClass();
+    if (!$object) {
+      if ($map->parent) {
+        $object = $this->populate_package($source, $this->entities[$map->parent]);
+      } else {
+        $object = new stdClass();
+      }
     }
 
     foreach ($map->properties as $key => $property) {
       $target_key = isset($property->name) ? $property->name : $key;
       $value = $source->{$key};
+
       if (is_object($value) || is_array($value)) {
         if (isset($property->unbox) && $property->unbox) {
-          for($i = 0; $i <$property->unbox; ++$i) {
+          for ($i = 0; $i < $property->unbox; ++$i) {
             $value = reset($value);
           }
-          $value = (object)$value;
         }
-        if (isset($this->entities[$property->trellis]))
-          $value = $this->populate_package($value, $this->entities[$property->trellis]);
 
-        if (isset($property->grab) && $property->grab)
+        if (isset($property->properties)) {
+          $this->populate_package((object)$value, $property, $object);
+          continue;
+        }
+
+        if (isset($this->entities[$property->trellis])) {
+          if ($property->type == 'list') {
+            $list = $value;
+            $value = array();
+            foreach ($list as $item) {
+              $value[] = $this->populate_package((object)$item, $this->entities[$property->trellis]);
+            }
+          } else {
+            $value = $this->populate_package((object)$value, $this->entities[$property->trellis]);
+          }
+        }
+
+        if (isset($property->grab) && $property->grab) {
+          $value = (object)$value;
           $value = $value->{$property->grab};
+        }
       }
 
       if ($property->type == 'base64')
@@ -167,7 +186,8 @@ class Vineyard_Sync
     return $object;
   }
 
-  static function get_type($entity, $category) {
+  static function get_type($entity, $category)
+  {
     if ($category == 'node')
       return $entity->type;
 
@@ -177,7 +197,8 @@ class Vineyard_Sync
 }
 
 
-function cli_debug($message) {
+function cli_debug($message)
+{
   if (php_sapi_name() == "cli") {
     print $message;
   }

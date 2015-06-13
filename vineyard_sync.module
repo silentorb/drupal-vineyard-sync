@@ -18,6 +18,14 @@ function vineyard_sync_menu()
     'type' => MENU_CALLBACK,
   );
 
+  $items['vineyard/update'] = array(
+    'title' => 'Admin service to update content',
+    'page callback' => 'vineyard_update',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer content types'),
+    'type' => MENU_CALLBACK,
+  );
+
   return $items;
 }
 
@@ -25,33 +33,48 @@ function vineyard_sync()
 {
   drupal_add_http_header('Content-Type', 'text/plain');
 
-  $types = explode(' ',$_GET['type']);
-  foreach($types as $type_name) {
+  $types = explode(' ', $_GET['type']);
+  echo "Starting\n\n";
+  foreach ($types as $type_name) {
     vineyard_sync_type($type_name);
   }
+  echo "\nDone\n";
 }
 
-function vineyard_sync_type($type_name) {
+function vineyard_sync_type($type_name)
+{
   $query = new EntityFieldQuery();
-  $query->entityCondition('entity_type', 'node')
-    ->entityCondition('bundle', $type_name);
+  if ($type_name == 'taxonomy_term' || $type_name == 'taxonomy_term_data') {
+    $entity_type = 'taxonomy_term';
+    $query->entityCondition('entity_type', $entity_type);
+  } else {
+    $entity_type = 'node';
+    $query->entityCondition('entity_type', $entity_type)
+      ->entityCondition('bundle', $type_name);
+  }
 
   if (isset($_GET['limit']))
     $query->range(0, $_GET['limit']);
 
   $result = $query->execute();
 
-  $nids = array();
-  foreach ($result['node'] as $entity) {
-    $nids[] = $entity->nid;
+  if ($entity_type == 'taxonomy_term') {
+    $entities = taxonomy_term_load_multiple(array_keys($result['taxonomy_term']));
+  } else {
+    $nids = array();
+    foreach ($result[$entity_type] as $entity) {
+      $nids[] = $entity->nid;
+    }
+    $entities = entity_load($entity_type, $nids);
   }
-  $entities = entity_load('node', $nids);
 
   $sync = Vineyard_Sync::get_instance();
 
   foreach ($entities as $entity) {
-    $sync->send($entity, $type_name);
-//    print_r($entity);
+    if (isset($_GET['debug']))
+      print_r($entity);
+    else
+      $sync->send($entity, $type_name);
   }
 }
 
@@ -77,4 +100,43 @@ function vineyard_sync_entity_delete($node, $type)
 
 //  if (isset($sync->entities[$node->type]))
   $sync->send($node, $type, true);
+}
+
+function vineyard_update()
+{
+  $request = json_decode(file_get_contents('php://input'), true);
+  foreach ($request['objects'] as $seed) {
+    $trellis = $seed['trellis'];
+    unset($seed['trellis']);
+    if ($trellis != 'user')
+      throw new Exception("Not yet support trellis type: " . $trellis);
+
+    _vineyard_update_user($seed);
+  }
+}
+
+function _vineyard_update_user($seed)
+{
+  $account = (object)array(
+    'uid' => get_array_value($seed, 'uid'),
+    'name' => get_array_value($seed, 'name'),
+    'pass' => get_array_value($seed, 'pass'),
+    'mail' => get_array_value($seed, 'mail'),
+    'init' => get_array_value($seed, 'mail'),
+    'status' => 1,
+    'roles' => array(2 => 'authenticated user')
+  );
+
+//print_r($account);
+  $account->original = $original = new stdClass();
+  $original->uid = $account->uid;
+  $original->status = 1;
+  $original->roles = array();
+  $original->pass = null;
+  user_save($account);
+}
+
+function get_array_value($array, $key)
+{
+  return isset($array[$key]) ? $array[$key] : null;
 }
