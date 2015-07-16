@@ -182,6 +182,8 @@ class Vineyard_Sync
 
       if ($property->type == 'base64')
         $value = base64_encode($value);
+      else if ($property->type == 'bool')
+        $value = (bool)intval($value);
 
       $object->{$target_key} = $value;
     }
