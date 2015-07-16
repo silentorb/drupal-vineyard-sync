@@ -64,11 +64,14 @@ class Vineyard_Sync
 
   function send($entity, $category, $deleted = false)
   {
+    $type = Vineyard_Sync::get_type($entity, $category);
+
+    if (!isset($this->entities[$type]))
+      return;
+
     if (!$this->server) {
       throw new Exception('Cannot send update.  Server connection was not configured.');
     }
-
-    $type = Vineyard_Sync::get_type($entity, $category);
 
     $data = array(
       'objects' => array($this->package_entity($entity, $type))
@@ -129,7 +132,7 @@ class Vineyard_Sync
   {
     $map = $this->entities[$type];
     $object = $this->populate_package($source, $map);
-    $object->trellis = $map->name ?: $type;
+    $object->trellis = $map->name ? $map->name : $type;
     return $object;
   }
 

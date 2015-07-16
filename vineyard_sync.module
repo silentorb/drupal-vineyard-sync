@@ -117,23 +117,29 @@ function vineyard_update()
 
 function _vineyard_update_user($seed)
 {
-  $account = (object)array(
-    'uid' => get_array_value($seed, 'uid'),
-    'name' => get_array_value($seed, 'name'),
-    'pass' => get_array_value($seed, 'pass'),
-    'mail' => get_array_value($seed, 'mail'),
-    'init' => get_array_value($seed, 'mail'),
-    'status' => 1,
-    'roles' => array(2 => 'authenticated user')
-  );
+  if (!$seed['uid'] || !is_int($seed['uid'])) {
+    throw new Exception("Invalid uid: " . $seed['uid']);
+  }
 
-//print_r($account);
-  $account->original = $original = new stdClass();
-  $original->uid = $account->uid;
-  $original->status = 1;
-  $original->roles = array();
-  $original->pass = null;
-  user_save($account);
+  $sql = <<<SQL
+REPLACE INTO users (uid, name, pass, mail, init, status, created, timezone, signature_format) VALUES (
+  :uid, :name, :pass, :mail, :init, 1, UNIX_TIMESTAMP(), 'America/Denver', 'filtered_html'
+);
+SQL;
+;
+  $email = get_array_value($seed, 'mail');
+
+  db_query($sql, array(
+    ':uid' => $seed['uid'],
+    ':name' => $seed['name'],
+    ':pass' => $seed['pass'],
+    ':mail' => $email,
+    ':init' => $email,
+  ));
+
+  $sql = "REPLACE INTO users_roles (uid, rid) VALUES (:uid, 2);";
+  db_query($sql, array(':uid'=> $seed['uid']));
+  
 }
 
 function get_array_value($array, $key)
